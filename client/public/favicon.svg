@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Rounded square background -->
+  <rect width="32" height="32" rx="8" fill="#4F46E5"/>
+  <!-- Bank / building icon (matches BankOutlined from Ant Design) -->
+  <!-- Roof / pediment triangle -->
+  <polygon points="16,5 28,11 4,11" fill="white"/>
+  <!-- Columns -->
+  <rect x="6"  y="12" width="2.5" height="10" fill="white"/>
+  <rect x="10.5" y="12" width="2.5" height="10" fill="white"/>
+  <rect x="15" y="12" width="2.5" height="10" fill="white"/>
+  <rect x="19.5" y="12" width="2.5" height="10" fill="white"/>
+  <rect x="23.5" y="12" width="2.5" height="10" fill="white"/>
+  <!-- Base / steps -->
+  <rect x="4"  y="22" width="24" height="2"   fill="white"/>
+  <rect x="3"  y="24" width="26" height="2.5" fill="white"/>
+</svg>
