@@ -115,9 +115,9 @@ firebase deploy --only firestore:rules
 cd server
 node src/scripts/createFirstAdmin.js \
   --name "Super Admin" \
-  --email "payare35@gmail.com" \
-  --password "Prathamesh@12" \
-  --contact "9960854948" \
+  --email "admin@example.com" \
+  --password "YourPassword@123" \
+  --contact "9876543210" \
   --flat "Office" \
   --society "Deshpande Blocks" \
   --upi "society@upi" \
