@@ -5,6 +5,10 @@ const COLLECTION = 'expenses';
 
 export const createExpense = async (data, createdBy) => {
   const ref = db.collection(COLLECTION).doc();
+
+  // Use the admin-supplied date if provided, otherwise fall back to now.
+  const expenseDate = data.date ? admin.firestore.Timestamp.fromDate(new Date(data.date)) : admin.firestore.FieldValue.serverTimestamp();
+
   const expenseData = {
     id: ref.id,
     title: data.title,
@@ -14,7 +18,7 @@ export const createExpense = async (data, createdBy) => {
     fileUrl: data.fileUrl || null,
     fileName: data.fileName || null,
     createdBy,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: expenseDate,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
   await ref.set(expenseData);

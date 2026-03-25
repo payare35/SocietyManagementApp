@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Form, Input, InputNumber, Select, Button, message, Card, Typography } from 'antd';
+import { Form, Input, InputNumber, Select, Button, message, Card, Typography, DatePicker } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { createExpense } from '../../api/expenses';
 import { fetchConfig } from '../../api/config';
 import { EXPENSE_TYPES } from '../../utils/constants';
@@ -29,6 +30,7 @@ export default function AddExpense() {
     mutationFn: (values) =>
       createExpense({
         ...values,
+        date: values.date ? values.date.toISOString() : new Date().toISOString(),
         fileUrl: fileData?.filePath || null,
         fileName: fileData?.fileName || null,
       }),
@@ -87,6 +89,20 @@ export default function AddExpense() {
               placeholder="0"
               min={1}
               formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="date"
+            label="Expense Date"
+            initialValue={dayjs()}
+            rules={[{ required: true, message: 'Please select the expense date' }]}
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD MMM YYYY"
+              disabledDate={(d) => d && d.isAfter(dayjs(), 'day')}
+              allowClear={false}
             />
           </Form.Item>
 
