@@ -31,9 +31,9 @@ export default function Settings() {
   useEffect(() => {
     if (config) {
       form.setFieldsValue({
-        societyName:        config.societyName        || '',
-        maintenanceAmount:  config.maintenanceAmount  ?? '',
-        upiId:              config.upiId              || '',
+        societyName:               config.societyName               || '',
+        monthlyMaintenanceAmount:  config.monthlyMaintenanceAmount  ?? '',
+        upiId:                     config.upiId                     || '',
       });
     }
   }, [config, form]);
@@ -85,7 +85,7 @@ export default function Settings() {
           <Divider style={{ margin: '8px 0 20px', borderColor: '#E2E8F0' }} />
 
           <Form.Item
-            name="maintenanceAmount"
+            name="monthlyMaintenanceAmount"
             label="Monthly Maintenance Amount (₹)"
             rules={[
               { required: true, message: 'Maintenance amount is required' },
