@@ -8,7 +8,11 @@
 import serverless from 'serverless-http';
 import app from '../../server/src/app.js';
 
-const serverlessHandler = serverless(app);
+// Binary content types must be base64-encoded inside the Lambda response
+// JSON envelope — otherwise image/PDF bytes get corrupted in transit.
+const serverlessHandler = serverless(app, {
+  binary: ['image/*', 'application/pdf', 'application/octet-stream', 'audio/*', 'video/*'],
+});
 
 export const handler = async (event, context) => {
   return serverlessHandler(event, context);

@@ -26,17 +26,20 @@ export const viewFile = async (req, res, next) => {
     const [metadata] = await file.getMetadata();
     const contentType = metadata.contentType || 'application/octet-stream';
 
+    // Download the entire file into a buffer before sending.
+    // Streaming with pipe() does not serialise correctly through serverless-http
+    // in Lambda environments — the full buffer approach is required.
+    const [buffer] = await file.download();
+
     res.set({
       'Content-Type': contentType,
+      'Content-Length': buffer.length,
       'Content-Disposition': 'inline',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
     });
 
-    file
-      .createReadStream()
-      .on('error', next)
-      .pipe(res);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }
