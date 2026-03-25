@@ -28,8 +28,9 @@ export default function LoginPage() {
         'auth/too-many-requests': 'Too many failed attempts. Please wait a few minutes and try again.',
         'auth/user-disabled': 'This account has been disabled. Contact your admin.',
         'auth/network-request-failed': 'Network error. Check your connection and retry.',
+        'auth/unauthorized-domain': 'This domain is not authorised in Firebase. Ask your admin to add it to Firebase → Authentication → Authorised domains.',
       };
-      message.error(codeMap[err?.code] || 'Login failed. Please try again.');
+      message.error(codeMap[err?.code] || `Login failed: ${err?.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }

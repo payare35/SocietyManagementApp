@@ -6,6 +6,9 @@
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
     "install:all": "npm install && npm install --prefix client && npm install --prefix server"
   },
+  "dependencies": {
+    "serverless-http": "^4.0.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "concurrently": "^8.2.2"

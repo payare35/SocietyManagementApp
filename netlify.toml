@@ -2,14 +2,20 @@
 [build]
   # Install server deps first (needed by the serverless function),
   # then build the React frontend.
-  command   = "npm install --prefix server && npm install --prefix client && npm run build --prefix client"
+  command   = "npm install --prefix server && npm install --prefix client && npm run build --prefix client && cp -r server/node_modules/sharp node_modules/ 2>/dev/null; cp -r server/node_modules/@img node_modules/ 2>/dev/null; true"
   publish   = "client/dist"
   functions = "netlify/functions"
 
 # ─── Functions ────────────────────────────────────────────────────────────────
 [functions]
-  # nft (Node File Tracer) handles native binaries (e.g. sharp) correctly
-  node_bundler = "nft"
+  # esbuild bundles all ESM imports into a single CJS output — avoids the
+  # "require() of ES Module" error that nft's CJS wrapper causes with .mjs files.
+  node_bundler = "esbuild"
+
+[functions."api"]
+  # sharp uses native binaries; keep it external so esbuild doesn't try to
+  # inline a .node file. Netlify will include the installed Linux binary.
+  external_node_modules = ["sharp", "@img"]
 
 # ─── Redirects ────────────────────────────────────────────────────────────────
 

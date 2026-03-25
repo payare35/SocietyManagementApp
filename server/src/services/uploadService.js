@@ -1,16 +1,34 @@
 import { storage } from '../config/firebase.js';
-import sharp from 'sharp';
 
-// Max dimension (px) — images wider/taller than this are scaled down
 const MAX_DIMENSION = 2048;
 
+// Lazy-load sharp — it uses native binaries that may not be available in all
+// environments (e.g. Netlify Lambda with wrong architecture). If it fails to
+// load we skip compression and upload the original file unmodified.
+let sharpFn = null;
+let sharpResolved = false;
+
+const getSharp = async () => {
+  if (sharpResolved) return sharpFn;
+  try {
+    sharpFn = (await import('sharp')).default;
+  } catch {
+    sharpFn = null;
+  }
+  sharpResolved = true;
+  return sharpFn;
+};
+
 /**
- * Compress an image buffer using sharp.
- * - JPEG / JPG → 80% quality, progressive encoding
- * - PNG        → level-8 compression, adaptive filtering
- * - Other      → returned unchanged
+ * Compress an image using sharp (if available).
+ * - JPEG/JPG → 80 % quality, progressive, mozjpeg
+ * - PNG      → level-8 compression, adaptive filtering
+ * - Other    → returned unchanged
  */
 const compressImage = async (file) => {
+  const sharp = await getSharp();
+  if (!sharp) return file; // compression unavailable — pass through
+
   const { mimetype, buffer } = file;
 
   if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
@@ -29,8 +47,7 @@ const compressImage = async (file) => {
     return { ...file, buffer: compressed };
   }
 
-  // PDFs and other types pass through unchanged
-  return file;
+  return file; // PDFs and other types pass through unchanged
 };
 
 export const uploadFile = async (file, folder = 'general') => {
@@ -38,7 +55,6 @@ export const uploadFile = async (file, folder = 'general') => {
     throw new Error('File upload is not available: Firebase Storage is not configured.');
   }
 
-  // Compress images before uploading
   const processedFile = await compressImage(file);
 
   const bucket = storage.bucket();
@@ -50,8 +66,6 @@ export const uploadFile = async (file, folder = 'general') => {
   await fileRef.save(processedFile.buffer, {
     metadata: { contentType: processedFile.mimetype },
   });
-  // File stays private — no makePublic() call.
-  // Access is granted via the authenticated GET /api/files/view endpoint.
 
   return { filePath: destination, fileName: processedFile.originalname };
 };
