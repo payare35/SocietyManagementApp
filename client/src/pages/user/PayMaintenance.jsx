@@ -1,39 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   Button,
   Typography,
-  Divider,
   Form,
   Input,
+  InputNumber,
   message,
-  Space,
   Alert,
   Row,
   Col,
   Skeleton,
 } from 'antd';
-import {
-  MobileOutlined,
-  WalletOutlined,
-} from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchMyDues } from '../../api/dues';
 import { createSelfTransaction, fetchMyTransactions } from '../../api/transactions';
-import { fetchConfig } from '../../api/config';
-import { buildUpiLinks } from '../../utils/upiLinks';
 import { formatCurrency, formatMonth } from '../../utils/formatters';
 import FileUpload from '../../components/common/FileUpload';
 
 const { Title, Text } = Typography;
-
-const UPI_APPS = [
-  { key: 'gpay', label: 'Google Pay', icon: <WalletOutlined /> },
-  { key: 'phonepe', label: 'PhonePe', icon: <MobileOutlined /> },
-  { key: 'paytm', label: 'Paytm', icon: <WalletOutlined /> },
-  { key: 'generic', label: 'Any UPI App', icon: <MobileOutlined /> },
-];
 
 export default function PayMaintenance() {
   const location = useLocation();
@@ -53,15 +39,9 @@ export default function PayMaintenance() {
     queryFn: () => fetchMyTransactions({ limit: 100 }),
   });
 
-  const { data: config, isLoading: configLoading } = useQuery({
-    queryKey: ['config'],
-    queryFn: fetchConfig,
-    staleTime: Infinity,
-  });
+  const isLoading = !location.state?.due && duesLoading;
 
-  const isLoading = (!location.state?.due && duesLoading) || configLoading;
-
-  // Sort ascending so earliest unpaid month is shown first
+  // Earliest unpaid/partial due
   const due =
     location.state?.due ||
     [...(duesData?.data || [])]
@@ -70,26 +50,23 @@ export default function PayMaintenance() {
 
   const remainingAmount = due ? due.amount - (due.paidAmount || 0) : 0;
 
+  // Pre-fill amount when due loads
+  useEffect(() => {
+    if (remainingAmount > 0) {
+      form.setFieldValue('amount', remainingAmount);
+    }
+  }, [remainingAmount, form]);
+
   const hasPendingForMonth = (myTxData?.data || []).some(
     (t) => t.month === due?.month && t.status === 'pending'
   );
 
-  const links =
-    due && config?.upiId
-      ? buildUpiLinks({
-          upiId: config.upiId,
-          societyName: config.societyName || 'Society',
-          amount: remainingAmount,
-          month: due.month,
-        })
-      : null;
-
   const submitMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values) =>
       createSelfTransaction({
-        amount: remainingAmount,
+        amount: values.amount,
         month: due?.month,
-        note: form.getFieldValue('note') || '',
+        note: values.note || '',
         fileUrl: fileData?.filePath || null,
         fileName: fileData?.fileName || null,
       }),
@@ -123,6 +100,7 @@ export default function PayMaintenance() {
     <div style={{ maxWidth: 520 }}>
       <Title level={3}>Pay Maintenance</Title>
 
+      {/* Due summary card */}
       <Card
         style={{
           borderRadius: 12,
@@ -166,35 +144,31 @@ export default function PayMaintenance() {
         />
       )}
 
-      {links ? (
-        <>
-          <Text strong>Pay via UPI App</Text>
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {UPI_APPS.map(({ key, label, icon }) => (
-              <Button
-                key={key}
-                block
-                size="large"
-                icon={icon}
-                style={{ textAlign: 'left', borderColor: '#C7D2FE' }}
-                onClick={() => { window.location.href = links[key]; }}
-              >
-                Pay with {label}
-              </Button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <Alert
-          type="warning"
-          message="UPI ID not configured by admin. Use the receipt upload below."
-          style={{ marginBottom: 16 }}
-        />
-      )}
+      {/* Payment form */}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={(values) => submitMutation.mutate(values)}
+      >
+        <Form.Item
+          name="amount"
+          label="Amount Paid (₹)"
+          rules={[
+            { required: true, message: 'Please enter the amount paid' },
+            { type: 'number', min: 1, message: 'Amount must be at least ₹1' },
+          ]}
+        >
+          <InputNumber
+            style={{ width: '100%' }}
+            size="large"
+            min={1}
+            step={100}
+            placeholder={String(remainingAmount)}
+            formatter={(v) => v ? `₹ ${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
+            parser={(v) => v.replace(/₹\s?|(,*)/g, '')}
+          />
+        </Form.Item>
 
-      <Divider>Already Paid? Upload Receipt</Divider>
-
-      <Form form={form} layout="vertical" onFinish={() => submitMutation.mutate()}>
         <Form.Item label="Upload Payment Receipt">
           <FileUpload
             folder="receipts"
@@ -202,10 +176,12 @@ export default function PayMaintenance() {
             label="Upload screenshot or receipt (JPG, PNG, PDF)"
           />
         </Form.Item>
+
         <Form.Item name="note" label="Note (Optional)">
           <Input placeholder="e.g. UTR number or transaction ID" />
         </Form.Item>
-        <Form.Item>
+
+        <Form.Item style={{ marginTop: 8 }}>
           <Button
             type="primary"
             htmlType="submit"

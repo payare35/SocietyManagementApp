@@ -10,6 +10,7 @@ import {
   CreditCardOutlined,
   BankOutlined,
   UserOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -18,11 +19,12 @@ const { Sider } = Layout;
 const { Text } = Typography;
 
 const adminMenuItems = [
-  { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/admin/members',   icon: <TeamOutlined />,        label: 'Members' },
-  { key: '/admin/expenses',  icon: <DollarOutlined />,      label: 'Expenses' },
+  { key: '/admin/dashboard',    icon: <DashboardOutlined />,   label: 'Dashboard' },
+  { key: '/admin/members',      icon: <TeamOutlined />,        label: 'Members' },
+  { key: '/admin/expenses',     icon: <DollarOutlined />,      label: 'Expenses' },
   { key: '/admin/transactions', icon: <TransactionOutlined />, label: 'Transactions' },
-  { key: '/admin/dues',      icon: <CalendarOutlined />,    label: 'Dues' },
+  { key: '/admin/dues',         icon: <CalendarOutlined />,    label: 'Dues' },
+  { key: '/admin/settings',     icon: <SettingOutlined />,     label: 'Settings' },
 ];
 
 const memberMenuItems = [

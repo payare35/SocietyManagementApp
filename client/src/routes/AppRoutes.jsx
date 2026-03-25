@@ -10,6 +10,7 @@ import Expenses from '../pages/admin/Expenses';
 import AddExpense from '../pages/admin/AddExpense';
 import Transactions from '../pages/admin/Transactions';
 import Dues from '../pages/admin/Dues';
+import Settings from '../pages/admin/Settings';
 import UserDashboard from '../pages/user/UserDashboard';
 import MyTransactions from '../pages/user/MyTransactions';
 import MyDues from '../pages/user/MyDues';
@@ -33,6 +34,7 @@ export default function AppRoutes() {
             <Route path="/admin/expenses/new" element={<AddExpense />} />
             <Route path="/admin/transactions" element={<Transactions />} />
             <Route path="/admin/dues" element={<Dues />} />
+            <Route path="/admin/settings" element={<Settings />} />
           </Route>
 
           {/* Member routes */}
