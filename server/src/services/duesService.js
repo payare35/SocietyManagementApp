@@ -1,19 +1,8 @@
 import admin, { db } from '../config/firebase.js';
 import { getPaginatedSlice } from '../utils/helpers.js';
+import { countFlats } from '../utils/flatUtils.js';
 
 const COLLECTION = 'maintenanceDues';
-
-/**
- * Count the number of flats from a comma-separated flatNumber string.
- * "501"        → 1
- * "501, 502"   → 2
- * "501,502,503"→ 3
- */
-const countFlats = (flatNumber) => {
-  if (!flatNumber) return 1;
-  const parts = String(flatNumber).split(',').map((f) => f.trim()).filter(Boolean);
-  return parts.length || 1;
-};
 
 export const generateDues = async (month) => {
   const configDoc = await db.collection('societyConfig').doc('config').get();

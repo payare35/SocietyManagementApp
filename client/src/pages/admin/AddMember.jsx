@@ -47,7 +47,19 @@ export default function AddMember() {
     },
   });
 
+  const normalizeFlatNumber = (raw) =>
+    raw
+      ? raw
+          .split(',')
+          .map((f) => f.trim())
+          .filter(Boolean)
+          .join(', ')
+      : raw;
+
   const onFinish = (values) => {
+    if (values.flatNumber != null && values.flatNumber !== '') {
+      values.flatNumber = normalizeFlatNumber(values.flatNumber);
+    }
     if (isEdit && !values.password) delete values.password;
     mutation.mutate(values);
   };
@@ -80,15 +92,6 @@ export default function AddMember() {
             name="flatNumber"
             label="Flat Number(s)"
             extra="For multiple flats use comma-separated values — e.g. 501, 502"
-            normalize={(v) =>
-              v
-                ? v
-                    .split(',')
-                    .map((f) => f.trim())
-                    .filter(Boolean)
-                    .join(', ')
-                : v
-            }
             rules={[
               { required: true, message: 'Flat number is required' },
               {
