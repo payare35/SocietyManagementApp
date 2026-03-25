@@ -1,0 +1,26 @@
+# ─── Build ────────────────────────────────────────────────────────────────────
+[build]
+  # Install server deps first (needed by the serverless function),
+  # then build the React frontend.
+  command   = "npm install --prefix server && npm install --prefix client && npm run build --prefix client"
+  publish   = "client/dist"
+  functions = "netlify/functions"
+
+# ─── Functions ────────────────────────────────────────────────────────────────
+[functions]
+  # nft (Node File Tracer) handles native binaries (e.g. sharp) correctly
+  node_bundler = "nft"
+
+# ─── Redirects ────────────────────────────────────────────────────────────────
+
+# 1. All /api/* requests are proxied to the serverless function
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/api/:splat"
+  status = 200
+
+# 2. SPA catch-all — React Router handles client-side navigation
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

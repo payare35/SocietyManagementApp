@@ -1,0 +1,219 @@
+:root {
+  --indigo-50:  #EEF2FF;
+  --indigo-100: #E0E7FF;
+  --indigo-200: #C7D2FE;
+  --indigo-400: #818CF8;
+  --indigo-500: #6366F1;
+  --indigo-600: #4F46E5;
+  --indigo-700: #4338CA;
+  --indigo-800: #3730A3;
+  --indigo-900: #312E81;
+
+  --slate-50:  #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+
+  --surface: #FFFFFF;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --transition: 0.18s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+  background: var(--slate-50);
+  color: var(--slate-800);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Page entry animation ─────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ant-layout-content > * {
+  animation: fadeSlideUp 0.24s ease both;
+}
+
+/* ── Page header row ──────────────────────────────────────── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h2, .page-header .ant-typography {
+  margin: 0;
+}
+
+/* ── Stat cards ───────────────────────────────────────────── */
+.stat-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--slate-200) !important;
+  transition: transform var(--transition), box-shadow var(--transition) !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Table enhancements ───────────────────────────────────── */
+.ant-table-wrapper {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--slate-200);
+}
+
+.ant-table-thead > tr > th {
+  background: var(--slate-50) !important;
+  color: var(--slate-500) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-bottom: 1px solid var(--slate-200) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--slate-100) !important;
+  transition: background var(--transition);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: var(--indigo-50) !important;
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.ant-btn {
+  transition: all var(--transition) !important;
+  font-weight: 500 !important;
+}
+
+.ant-btn-primary {
+  background: var(--indigo-600) !important;
+  border-color: var(--indigo-600) !important;
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: var(--indigo-700) !important;
+  border-color: var(--indigo-700) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(79,70,229,0.25) !important;
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: none !important;
+}
+
+/* ── Cards ────────────────────────────────────────────────── */
+.ant-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--slate-200) !important;
+  box-shadow: none !important;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.ant-card:hover {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* ── Ant Form ─────────────────────────────────────────────── */
+.ant-form-item-label > label {
+  font-weight: 500 !important;
+  color: var(--slate-700) !important;
+  font-size: 13px !important;
+}
+
+/* ── Tags ─────────────────────────────────────────────────── */
+.ant-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.03em;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+.ant-modal-content {
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ── Alert ────────────────────────────────────────────────── */
+.ant-alert {
+  border-radius: var(--radius) !important;
+}
+
+/* ── Upload dragger ───────────────────────────────────────── */
+.ant-upload-drag {
+  border-color: var(--indigo-200) !important;
+  border-radius: var(--radius) !important;
+  background: var(--indigo-50) !important;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.ant-upload-drag:hover {
+  border-color: var(--indigo-500) !important;
+  background: var(--indigo-100) !important;
+}
+
+/* ── Sidebar overrides ────────────────────────────────────── */
+.app-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sider .ant-menu-item {
+  border-radius: var(--radius) !important;
+  margin: 2px 8px !important;
+  width: calc(100% - 16px) !important;
+  transition: background var(--transition), color var(--transition) !important;
+}
+
+.app-sider .ant-menu-item-selected {
+  background: var(--indigo-600) !important;
+}
+
+/* ── Layout content area ──────────────────────────────────── */
+.app-content {
+  margin: 20px 16px;
+  padding: 24px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--slate-200);
+  min-height: 280px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-content {
+    margin: 12px 8px;
+    padding: 16px;
+  }
+
+  .ant-layout-sider {
+    position: fixed !important;
+    z-index: 100;
+    height: 100vh;
+  }
+}

@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(memberId) {
+      return request.auth != null && request.auth.uid == memberId;
+    }
+
+    // Members collection
+    match /members/{memberId} {
+      allow read, write: if isAdmin();
+      allow read: if isOwner(memberId);
+    }
+
+    // Expenses collection — all authenticated users can read, only admins write
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Transactions — admins full access; members can read their own
+    match /transactions/{transactionId} {
+      allow read, write: if isAdmin();
+      allow read: if isAuthenticated() &&
+        resource.data.memberId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.memberId == request.auth.uid &&
+        request.resource.data.recordedBy == 'self' &&
+        request.resource.data.status == 'pending';
+    }
+
+    // Maintenance dues — admins full access; members can read their own
+    match /maintenanceDues/{dueId} {
+      allow read, write: if isAdmin();
+      allow read: if isAuthenticated() &&
+        resource.data.memberId == request.auth.uid;
+    }
+
+    // Society config — all authenticated users read; only admins write
+    match /societyConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
