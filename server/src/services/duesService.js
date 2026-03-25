@@ -3,6 +3,18 @@ import { getPaginatedSlice } from '../utils/helpers.js';
 
 const COLLECTION = 'maintenanceDues';
 
+/**
+ * Count the number of flats from a comma-separated flatNumber string.
+ * "501"        → 1
+ * "501, 502"   → 2
+ * "501,502,503"→ 3
+ */
+const countFlats = (flatNumber) => {
+  if (!flatNumber) return 1;
+  const parts = String(flatNumber).split(',').map((f) => f.trim()).filter(Boolean);
+  return parts.length || 1;
+};
+
 export const generateDues = async (month) => {
   const configDoc = await db.collection('societyConfig').doc('config').get();
   if (!configDoc.exists) throw new Error('Society config not found. Run setup first.');
@@ -30,13 +42,15 @@ export const generateDues = async (month) => {
     const member = memberDoc.data();
     if (!existingMemberIds.has(member.uid)) {
       const dueRef = db.collection(COLLECTION).doc();
+      const flats = countFlats(member.flatNumber);
       const due = {
         id: dueRef.id,
         memberId: member.uid,
         memberName: member.name,
         flatNumber: member.flatNumber,
+        flatCount: flats,
         month,
-        amount: monthlyMaintenanceAmount,
+        amount: monthlyMaintenanceAmount * flats,
         status: 'unpaid',
         paidAmount: 0,
         dueDate: admin.firestore.Timestamp.fromDate(dueDate),

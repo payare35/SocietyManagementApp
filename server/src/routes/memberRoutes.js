@@ -19,7 +19,12 @@ const createValidation = [
     .matches(/^[6-9]\d{9}$/)
     .withMessage('Invalid Indian mobile number'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('flatNumber').notEmpty().withMessage('Flat number is required'),
+  body('flatNumber')
+    .notEmpty().withMessage('Flat number is required')
+    .customSanitizer((v) =>
+      // Normalise: trim each segment, remove blanks, rejoin
+      v ? v.split(',').map((f) => f.trim()).filter(Boolean).join(', ') : v
+    ),
   body('email').optional().isEmail().withMessage('Invalid email'),
   body('role').optional().isIn(['admin', 'member']).withMessage('Role must be admin or member'),
 ];

@@ -78,10 +78,30 @@ export default function AddMember() {
 
           <Form.Item
             name="flatNumber"
-            label="Flat Number"
-            rules={[{ required: true, message: 'Flat number is required' }]}
+            label="Flat Number(s)"
+            extra="For multiple flats use comma-separated values — e.g. 501, 502"
+            normalize={(v) =>
+              v
+                ? v
+                    .split(',')
+                    .map((f) => f.trim())
+                    .filter(Boolean)
+                    .join(', ')
+                : v
+            }
+            rules={[
+              { required: true, message: 'Flat number is required' },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const parts = value.split(',').map((f) => f.trim()).filter(Boolean);
+                  if (parts.length === 0) return Promise.reject('Enter at least one flat number');
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
-            <Input placeholder="e.g. A-101" />
+            <Input placeholder="e.g. 501  or  501, 502, 503" />
           </Form.Item>
 
           <Form.Item
