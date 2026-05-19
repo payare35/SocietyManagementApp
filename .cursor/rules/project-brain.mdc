@@ -1,0 +1,135 @@
+---
+description: Deshpande Blocks — tech stack, patterns, and anti-patterns for all AI sessions
+alwaysApply: true
+---
+
+# Deshpande Blocks — Cursor Rules
+
+## Tech stack & versions
+
+| Layer | Stack | Constraints |
+|-------|--------|-------------|
+| Frontend | React **18.2**, Vite **5.1**, React Router **6.22** | ESM only (`"type": "module"` in client) |
+| UI | Ant Design **5.14**, `@ant-design/icons` **5.3** | Theme tokens in `client/src/main.jsx`; global CSS in `client/src/index.css` |
+| Server state | TanStack React Query **5.20** | Default `staleTime: 5min`, `retry: 1` in `main.jsx` |
+| Auth state | React Context + `useReducer` | `client/src/context/AuthContext.jsx` only |
+| HTTP | Axios **1.6** | `client/src/api/axios.js` — Bearer from `localStorage.token` |
+| Auth | Firebase client **10.8** + Firebase Admin **12.0** | Custom claims `role`: `admin` \| `member` |
+| Database | Firestore (via Admin SDK) | No ORM; services talk to collections directly |
+| Storage | Firebase Storage (GCS) | Private files; served via `/api/files/view` blob proxy |
+| Backend | Express **4.18**, ESM (`"type": "module"`) | Port **5001** locally (`server/src/index.js`) |
+| Validation | express-validator **7** | Route-level arrays; check `validationResult(req)` in controllers |
+| Deploy | Netlify static + serverless function | `netlify.toml`; API at `/api/*` → `netlify/functions/api.mjs` |
+| Node | **20+** recommended | Serverless uses `esbuild` bundler; `sharp` is external |
+
+Env vars: `VITE_*` (client), `FIREBASE_SERVICE_ACCOUNT_JSON` / `serviceAccountKey.json` (server), `CLIENT_ORIGIN`, `FIREBASE_STORAGE_BUCKET`.
+
+## State management
+
+- **Auth (global):** `AuthProvider` — Firebase user + `profile` from `GET /api/auth/me`. Use `useAuth()`; never duplicate auth state in pages.
+- **Server data (per feature):** React Query — `useQuery` / `useMutation` in page components. API modules in `client/src/api/*.js` return `res.data.data`.
+- **Local UI:** `useState` in pages/components (filters, modals, pagination page index).
+- **Do not add** Redux, Zustand, or MobX.
+
+## Folder structure & naming
+
+```
+/
+├── client/src/
+│   ├── api/           # Axios wrappers; one file per resource
+│   ├── components/
+│   │   ├── common/    # Reusable UI (Loader, FileUpload, …)
+│   │   ├── dashboard/ # Dashboard-only widgets
+│   │   └── Layout/    # AppLayout, Sidebar, Header (PascalCase filenames)
+│   ├── context/       # AuthContext only
+│   ├── pages/
+│   │   ├── admin/     # Admin-only screens
+│   │   ├── user/      # Member screens
+│   │   └── auth/      # Login
+│   ├── routes/        # AppRoutes, PrivateRoute, AdminRoute
+│   └── utils/         # formatters, constants, upiLinks
+├── server/src/
+│   ├── config/        # firebase.js
+│   ├── controllers/   # HTTP handlers (*Controller.js)
+│   ├── middleware/    # auth, admin, errorHandler
+│   ├── routes/        # Express routers (*Routes.js)
+│   ├── services/      # Firestore + business logic (*Service.js)
+│   └── utils/         # helpers, responseFormatter, flatUtils
+├── netlify/functions/ # api.mjs serverless wrapper
+└── tests/             # Playwright specs + fixtures.js
+```
+
+- **Files:** camelCase for JS utilities/services; **PascalCase** for React components (`AddMember.jsx`).
+- **Exports:** default export for React components; named exports for API functions and server handlers.
+- **Firestore collections:** `members`, `expenses`, `transactions`, `maintenanceDues`, `societyConfig` (doc `config`).
+
+## Import order (observed pattern)
+
+1. React / router / third-party (`antd`, `@tanstack/react-query`, `dayjs`)
+2. `@ant-design/icons`
+3. Relative imports: `api/`, `components/`, `context/`, `utils/`
+4. Local styles (rare; prefer `index.css` + Ant Design theme)
+
+Server: Node built-ins → npm packages → `../config`, `../services`, `../utils`, `../middleware`.
+
+## Recurring patterns
+
+**Client API call:**
+```javascript
+import api from './axios';
+export const fetchX = async (params) => {
+  const res = await api.get('/resource', { params });
+  return res.data.data;
+};
+```
+
+**Page with list + mutation:**
+```javascript
+const { data, isLoading } = useQuery({ queryKey: ['resource', filters, page], queryFn: () => fetchX(...) });
+const mutation = useMutation({
+  mutationFn: createX,
+  onSuccess: () => {
+    message.success('...');
+    queryClient.invalidateQueries({ queryKey: ['resource'] });
+  },
+  onError: (err) => message.error(err.response?.data?.message || 'Failed'),
+});
+```
+
+**Server controller:**
+```javascript
+export const handler = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return sendError(res, 400, 'Validation failed', errors.array());
+    const result = await serviceFn(...);
+    return sendSuccess(res, result, 'Message', 201);
+  } catch (err) {
+    next(err);
+  }
+};
+```
+
+**Routes:** `router.use(authMiddleware)` then optional `adminMiddleware` for admin-only resources.
+
+**File attachments:** Store GCS path in `fileUrl` / `fileName`; view with `<FileViewerModal filePath={...} fileName={...}>`. Upload via `<FileUpload folder="expenses" onUpload={setFileData} />`.
+
+**Multi-flat members:** `flatNumber` is comma-separated string (e.g. `501, 502`). Count with `countFlats()` from `server/src/utils/flatUtils.js`. Dues: `amount = monthlyMaintenanceAmount * flatCount`. **Never** `normalize` flat input on every keystroke — normalize on submit only.
+
+## Anti-patterns (do NOT)
+
+- Do **not** expose public Firebase Storage URLs for receipts; use `/api/files/view` + `FileViewerModal`.
+- Do **not** add composite Firestore queries that need custom indexes; fetch + filter/sort in memory (see `duesService`, `transactionService`).
+- Do **not** skip `queryClient.invalidateQueries` after mutations that affect dues, transactions, or dashboard stats.
+- Do **not** use `import.meta.url` in server code loaded by Netlify esbuild CJS bundle; use `process.cwd()` for paths.
+- Do **not** prepend `/api` twice in `netlify/functions/api.mjs` — Netlify passes full path already.
+- Do **not** stream files with `pipe(res)` in serverless; use `file.download()` + `res.send(buffer)` with `serverless-http` `binary` types.
+- Do **not** block admin-members from dues generation or member routes based on `role === 'member'` only.
+- Do **not** use field name `maintenanceAmount` in config — Firestore uses `monthlyMaintenanceAmount`.
+- Do **not** commit `serviceAccountKey.json`, `.env`, or `test-results/`.
+- Do **not** add gradients or extra brand colors; design is **2-color** (indigo `#4F46E5` + slate `#1E293B` / shades in `index.css`).
+- Do **not** create commits or deploy unless the user explicitly asks.
+
+## Dual-role users
+
+Admins who are also residents: `profile.role === 'admin'` shows **both** sidebar sections (Admin + My Account). `AdminRoute` guards `/admin/*`; member routes are open to any authenticated user.
