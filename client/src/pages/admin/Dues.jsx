@@ -1,5 +1,17 @@
 import { useState } from 'react';
-import { Table, Button, Select, DatePicker, Tag, Space, Modal, message, Typography } from 'antd';
+import {
+  Table,
+  Button,
+  Select,
+  DatePicker,
+  Tag,
+  Space,
+  Modal,
+  Form,
+  Input,
+  message,
+  Typography,
+} from 'antd';
 import { CalendarOutlined, CheckOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -9,14 +21,16 @@ import { formatCurrency, formatDate, formatMonth } from '../../utils/formatters'
 import { STATUS_COLORS } from '../../utils/constants';
 import EmptyState from '../../components/common/EmptyState';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function Dues() {
   const queryClient = useQueryClient();
+  const [markPaidForm] = Form.useForm();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({});
   const [genMonth, setGenMonth] = useState(null);
   const [genModalOpen, setGenModalOpen] = useState(false);
+  const [markPaidRecord, setMarkPaidRecord] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['dues', filters, page],
@@ -35,13 +49,13 @@ export default function Dues() {
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: async (record) => {
+    mutationFn: async ({ record, comment }) => {
       await createTransaction({
         memberId: record.memberId,
         amount: record.amount,
         type: 'maintenance',
         month: record.month,
-        note: 'Marked as paid by admin',
+        note: comment?.trim() || 'Marked as paid by admin',
       });
     },
     onSuccess: () => {
@@ -52,15 +66,15 @@ export default function Dues() {
       queryClient.invalidateQueries({ queryKey: ['my-dues-list'] });
       queryClient.invalidateQueries({ queryKey: ['my-dues-pay'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setMarkPaidRecord(null);
+      markPaidForm.resetFields();
     },
     onError: () => message.error('Failed to mark as paid'),
   });
 
-  const handleMarkPaid = (record) => {
-    Modal.confirm({
-      title: `Mark ${record.memberName}'s due as paid?`,
-      content: `Month: ${formatMonth(record.month)} | Amount: ${formatCurrency(record.amount)}`,
-      onOk: () => markPaidMutation.mutate(record),
+  const handleMarkPaidSubmit = () => {
+    markPaidForm.validateFields().then((values) => {
+      markPaidMutation.mutate({ record: markPaidRecord, comment: values.comment });
     });
   };
 
@@ -68,6 +82,13 @@ export default function Dues() {
     { title: 'Member', dataIndex: 'memberName', key: 'memberName' },
     { title: 'Flat No.', dataIndex: 'flatNumber', key: 'flatNumber', width: 100 },
     { title: 'Month', dataIndex: 'month', key: 'month', render: (v) => formatMonth(v) },
+    {
+      title: 'Rate/flat',
+      dataIndex: 'ratePerFlat',
+      key: 'ratePerFlat',
+      width: 110,
+      render: (v) => (v != null ? formatCurrency(v) : '—'),
+    },
     { title: 'Due Amount', dataIndex: 'amount', key: 'amount', render: (v) => formatCurrency(v) },
     { title: 'Paid Amount', dataIndex: 'paidAmount', key: 'paidAmount', render: (v) => formatCurrency(v) },
     {
@@ -87,7 +108,10 @@ export default function Dues() {
             size="small"
             type="primary"
             icon={<CheckOutlined />}
-            onClick={() => handleMarkPaid(record)}
+            onClick={() => {
+              markPaidForm.resetFields();
+              setMarkPaidRecord(record);
+            }}
           >
             Mark Paid
           </Button>
@@ -132,7 +156,7 @@ export default function Dues() {
         columns={columns}
         rowKey="id"
         loading={isLoading}
-        scroll={{ x: 800 }}
+        scroll={{ x: 920 }}
         locale={{ emptyText: <EmptyState description="No dues found. Generate dues for a month." /> }}
         pagination={{
           current: page,
@@ -161,6 +185,33 @@ export default function Dues() {
           onChange={setGenMonth}
           disabledDate={(d) => d && d > dayjs().endOf('month')}
         />
+      </Modal>
+
+      <Modal
+        title={markPaidRecord ? `Mark ${markPaidRecord.memberName}'s due as paid?` : 'Mark as paid'}
+        open={Boolean(markPaidRecord)}
+        onCancel={() => {
+          setMarkPaidRecord(null);
+          markPaidForm.resetFields();
+        }}
+        onOk={handleMarkPaidSubmit}
+        confirmLoading={markPaidMutation.isPending}
+        okText="Mark Paid"
+        destroyOnClose
+      >
+        {markPaidRecord && (
+          <>
+            <Text type="secondary">
+              Month: {formatMonth(markPaidRecord.month)} | Amount:{' '}
+              {formatCurrency(markPaidRecord.amount)}
+            </Text>
+            <Form form={markPaidForm} layout="vertical" style={{ marginTop: 16 }}>
+              <Form.Item name="comment" label="Comment (Optional)">
+                <Input.TextArea rows={3} placeholder="Optional note for this payment" />
+              </Form.Item>
+            </Form>
+          </>
+        )}
       </Modal>
     </div>
   );

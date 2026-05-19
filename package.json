@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
-    "install:all": "npm install && npm install --prefix client && npm install --prefix server"
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "test:unit": "node --test client/src/utils/expenseCategories.test.js && npm run test:unit --prefix server",
+    "test:api": "node --test tests/api-feature.test.mjs",
+    "test:e2e:features": "playwright test tests/dues-mark-paid.spec.js tests/expense-categories.spec.js tests/maintenance-override.spec.js tests/multi-flat.spec.js",
+    "test:features": "npm run test:unit && npm run test:api && npm run test:e2e:features"
   },
   "dependencies": {
     "serverless-http": "^4.0.0"

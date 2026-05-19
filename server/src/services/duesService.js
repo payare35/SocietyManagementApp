@@ -1,6 +1,6 @@
 import admin, { db } from '../config/firebase.js';
 import { getPaginatedSlice } from '../utils/helpers.js';
-import { countFlats } from '../utils/flatUtils.js';
+import { computeDueAmount } from '../utils/dueAmount.js';
 
 const COLLECTION = 'maintenanceDues';
 
@@ -31,15 +31,16 @@ export const generateDues = async (month) => {
     const member = memberDoc.data();
     if (!existingMemberIds.has(member.uid)) {
       const dueRef = db.collection(COLLECTION).doc();
-      const flats = countFlats(member.flatNumber);
+      const { ratePerFlat, flatCount, amount } = computeDueAmount(member, monthlyMaintenanceAmount);
       const due = {
         id: dueRef.id,
         memberId: member.uid,
         memberName: member.name,
         flatNumber: member.flatNumber,
-        flatCount: flats,
+        flatCount,
         month,
-        amount: monthlyMaintenanceAmount * flats,
+        ratePerFlat,
+        amount,
         status: 'unpaid',
         paidAmount: 0,
         dueDate: admin.firestore.Timestamp.fromDate(dueDate),

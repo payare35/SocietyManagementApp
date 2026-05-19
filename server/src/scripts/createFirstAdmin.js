@@ -99,6 +99,7 @@ const run = async () => {
       societyName: society,
       address: '',
       monthlyMaintenanceAmount: Number(maintenance),
+      // Rollup types for legacy filters; granular labels live in client expenseCategories.js
       expenseTypes: ['Maintenance', 'Repair', 'Event', 'Utility', 'Other'],
       upiId: upi,
       societyId: 'default',

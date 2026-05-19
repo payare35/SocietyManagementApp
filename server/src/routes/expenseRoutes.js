@@ -16,6 +16,7 @@ router.use(authMiddleware);
 const createValidation = [
   body('title').notEmpty().withMessage('Title is required'),
   body('type').notEmpty().withMessage('Type is required'),
+  body('subType').optional().isString().withMessage('Sub-type must be a string'),
   body('amount').isNumeric().withMessage('Amount must be a number'),
 ];
 

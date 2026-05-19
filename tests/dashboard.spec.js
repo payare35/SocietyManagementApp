@@ -415,13 +415,14 @@ test.describe('7. Dues', () => {
     }
   });
 
-  test('7.6 Mark Paid confirmation modal can be dismissed', async ({ page }) => {
+  test('7.6 Mark Paid modal can be dismissed', async ({ page }) => {
     await waitForIdle(page);
     const btn = page.locator('button:has-text("Mark Paid")').first();
     if (await btn.count() > 0) {
       await btn.click();
-      await expect(page.locator('.ant-modal-confirm')).toBeVisible({ timeout: 5000 });
-      await page.locator('.ant-modal-confirm .ant-btn:not(.ant-btn-primary)').click();
+      const modal = page.locator('.ant-modal').filter({ hasText: /Mark.*due as paid/i });
+      await expect(modal).toBeVisible({ timeout: 5000 });
+      await modal.locator('button:has-text("Cancel")').click();
     } else {
       test.skip();
     }

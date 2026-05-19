@@ -27,6 +27,10 @@ const createValidation = [
     ),
   body('email').optional().isEmail().withMessage('Invalid email'),
   body('role').optional().isIn(['admin', 'member']).withMessage('Role must be admin or member'),
+  body('monthlyMaintenanceAmount')
+    .optional({ values: 'null' })
+    .isFloat({ min: 1 })
+    .withMessage('Maintenance override must be at least ₹1'),
 ];
 
 const updateValidation = [
@@ -36,6 +40,10 @@ const updateValidation = [
     .withMessage('Invalid Indian mobile number'),
   body('email').optional().isEmail().withMessage('Invalid email'),
   body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('monthlyMaintenanceAmount')
+    .optional({ values: 'null' })
+    .isFloat({ min: 1 })
+    .withMessage('Maintenance override must be at least ₹1'),
 ];
 
 router.post('/', createValidation, createMember);

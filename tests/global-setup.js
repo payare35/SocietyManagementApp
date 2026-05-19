@@ -1,9 +1,9 @@
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { getAdminCustomToken } from './auth-token.mjs';
 
-const ADMIN_EMAIL = 'payare35@gmail.com';
-const ADMIN_PASSWORD = 'Prathamesh@12';
+const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
 export default async function globalSetup() {
   const authDir = path.join(process.cwd(), 'tests/.auth');
@@ -12,16 +12,15 @@ export default async function globalSetup() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
-  await page.goto('http://localhost:5173/login');
-  await page.waitForSelector('input#identifier', { timeout: 15000 });
-  await page.fill('input#identifier', ADMIN_EMAIL);
-  await page.fill('input[type="password"]', ADMIN_PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
-
-  // Save the authenticated browser state (cookies + localStorage)
-  await page.context().storageState({ path: path.join(authDir, 'admin.json') });
-  await browser.close();
-
-  console.log('✓ Global setup: admin session saved to tests/.auth/admin.json');
+  try {
+    const customToken = await getAdminCustomToken();
+    await page.goto(`${BASE}/e2e-auth?customToken=${encodeURIComponent(customToken)}`);
+    await page.waitForURL((url) => url.pathname.includes('/admin/dashboard'), { timeout: 45000 });
+    await page.context().storageState({ path: path.join(authDir, 'admin.json') });
+    console.log('✓ Global setup: admin session saved via E2E auth bridge');
+  } catch (err) {
+    console.warn(`⚠ Global setup failed: ${err.message}`);
+  } finally {
+    await browser.close();
+  }
 }

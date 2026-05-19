@@ -100,6 +100,13 @@ export default function Transactions() {
       render: (v) => <Tag color={STATUS_COLORS[v]}>{v?.toUpperCase()}</Tag>,
     },
     {
+      title: 'Note',
+      dataIndex: 'note',
+      key: 'note',
+      ellipsis: true,
+      render: (v) => v || '—',
+    },
+    {
       title: 'Receipt',
       dataIndex: 'fileUrl',
       key: 'fileUrl',

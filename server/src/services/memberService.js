@@ -4,7 +4,7 @@ import { buildSyntheticEmail, getPaginatedSlice } from '../utils/helpers.js';
 const COLLECTION = 'members';
 
 export const createMember = async (data, createdBy) => {
-  const { name, contactNumber, email, password, role = 'member', flatNumber } = data;
+  const { name, contactNumber, email, password, role = 'member', flatNumber, monthlyMaintenanceAmount } = data;
   const authEmail = email || buildSyntheticEmail(contactNumber);
 
   const userRecord = await auth.createUser({
@@ -30,6 +30,10 @@ export const createMember = async (data, createdBy) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+
+  if (monthlyMaintenanceAmount != null && monthlyMaintenanceAmount !== '') {
+    memberData.monthlyMaintenanceAmount = Number(monthlyMaintenanceAmount);
+  }
 
   await db.collection(COLLECTION).doc(userRecord.uid).set(memberData);
   return { ...memberData, uid: userRecord.uid };
@@ -70,6 +74,14 @@ export const updateMember = async (id, data) => {
   if (email !== undefined) updateData.email = email;
   if (flatNumber !== undefined) updateData.flatNumber = flatNumber;
   if (isActive !== undefined) updateData.isActive = isActive;
+
+  if (data.monthlyMaintenanceAmount !== undefined) {
+    if (data.monthlyMaintenanceAmount === null || data.monthlyMaintenanceAmount === '') {
+      updateData.monthlyMaintenanceAmount = admin.firestore.FieldValue.delete();
+    } else {
+      updateData.monthlyMaintenanceAmount = Number(data.monthlyMaintenanceAmount);
+    }
+  }
 
   if (role !== undefined) {
     updateData.role = role;

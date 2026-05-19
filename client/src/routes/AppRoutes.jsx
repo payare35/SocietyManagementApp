@@ -3,6 +3,7 @@ import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
 import AppLayout from '../components/Layout/AppLayout';
 import LoginPage from '../pages/auth/LoginPage';
+import E2EAuthBridge from '../pages/auth/E2EAuthBridge';
 import Dashboard from '../pages/admin/Dashboard';
 import Members from '../pages/admin/Members';
 import AddMember from '../pages/admin/AddMember';
@@ -21,6 +22,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {import.meta.env.DEV && <Route path="/e2e-auth" element={<E2EAuthBridge />} />}
 
       <Route element={<PrivateRoute />}>
         <Route element={<AppLayout />}>

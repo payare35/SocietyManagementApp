@@ -13,6 +13,7 @@ export const createExpense = async (data, createdBy) => {
     id: ref.id,
     title: data.title,
     type: data.type,
+    subType: data.subType || null,
     amount: Number(data.amount),
     description: data.description || '',
     fileUrl: data.fileUrl || null,
@@ -63,7 +64,7 @@ export const updateExpense = async (id, data) => {
   const updateData = {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
-  const fields = ['title', 'type', 'amount', 'description', 'fileUrl', 'fileName'];
+  const fields = ['title', 'type', 'subType', 'amount', 'description', 'fileUrl', 'fileName'];
   fields.forEach((f) => {
     if (data[f] !== undefined) updateData[f] = f === 'amount' ? Number(data[f]) : data[f];
   });

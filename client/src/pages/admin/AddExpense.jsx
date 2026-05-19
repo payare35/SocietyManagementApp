@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Form, Input, InputNumber, Select, Button, message, Card, Typography, DatePicker } from 'antd';
+import { Form, Input, InputNumber, Cascader, Button, message, Card, Typography, DatePicker } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { createExpense } from '../../api/expenses';
-import { fetchConfig } from '../../api/config';
-import { EXPENSE_TYPES } from '../../utils/constants';
+import { getExpenseCascaderOptions, cascaderPathToExpense } from '../../utils/expenseCategories';
 import FileUpload from '../../components/common/FileUpload';
 
 const { Title } = Typography;
 const { TextArea } = Input;
+
+const cascaderOptions = getExpenseCascaderOptions();
 
 export default function AddExpense() {
   const [form] = Form.useForm();
@@ -18,22 +19,20 @@ export default function AddExpense() {
   const queryClient = useQueryClient();
   const [fileData, setFileData] = useState(null);
 
-  const { data: config } = useQuery({
-    queryKey: ['config'],
-    queryFn: fetchConfig,
-    staleTime: Infinity,
-  });
-
-  const expenseTypes = config?.expenseTypes || EXPENSE_TYPES;
-
   const mutation = useMutation({
-    mutationFn: (values) =>
-      createExpense({
-        ...values,
+    mutationFn: (values) => {
+      const { type, subType } = cascaderPathToExpense(values.categoryPath);
+      return createExpense({
+        title: values.title,
+        type,
+        subType: subType || undefined,
+        amount: values.amount,
+        description: values.description,
         date: values.date ? values.date.toISOString() : new Date().toISOString(),
         fileUrl: fileData?.filePath || null,
         fileName: fileData?.fileName || null,
-      }),
+      });
+    },
     onSuccess: () => {
       message.success('Expense created successfully');
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -65,13 +64,30 @@ export default function AddExpense() {
           </Form.Item>
 
           <Form.Item
-            name="type"
-            label="Expense Type"
-            rules={[{ required: true, message: 'Please select a type' }]}
+            name="categoryPath"
+            label="Expense Category"
+            rules={[
+              { required: true, message: 'Please select a category' },
+              {
+                validator: (_, value) => {
+                  const { type } = cascaderPathToExpense(value);
+                  if (!type) return Promise.reject(new Error('Please select a valid category'));
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
-            <Select
-              placeholder="Select type"
-              options={expenseTypes.map((t) => ({ value: t, label: t }))}
+            <Cascader
+              options={cascaderOptions}
+              placeholder="Select category"
+              showSearch={{
+                filter: (input, path) =>
+                  path.some((opt) =>
+                    String(opt.label).toLowerCase().includes(input.toLowerCase())
+                  ),
+              }}
+              expandTrigger="hover"
+              style={{ width: '100%' }}
             />
           </Form.Item>
 

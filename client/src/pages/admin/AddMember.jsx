@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { Form, Input, Select, Button, message, Card, Typography } from 'antd';
+import { Form, Input, InputNumber, Select, Button, message, Card, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createMember, updateMember, fetchMemberById } from '../../api/members';
+import { fetchConfig } from '../../api/config';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -21,6 +22,12 @@ export default function AddMember() {
     enabled: isEdit,
   });
 
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: fetchConfig,
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
     if (member) {
       form.setFieldsValue({
@@ -29,6 +36,7 @@ export default function AddMember() {
         email: member.email,
         flatNumber: member.flatNumber,
         role: member.role,
+        monthlyMaintenanceAmount: member.monthlyMaintenanceAmount ?? undefined,
       });
     }
   }, [member, form]);
@@ -61,6 +69,10 @@ export default function AddMember() {
       values.flatNumber = normalizeFlatNumber(values.flatNumber);
     }
     if (isEdit && !values.password) delete values.password;
+    if (values.monthlyMaintenanceAmount === '' || values.monthlyMaintenanceAmount == null) {
+      if (isEdit) values.monthlyMaintenanceAmount = null;
+      else delete values.monthlyMaintenanceAmount;
+    }
     mutation.mutate(values);
   };
 
@@ -150,6 +162,32 @@ export default function AddMember() {
               <Option value="member">Member</Option>
               <Option value="admin">Admin</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="monthlyMaintenanceAmount"
+            label="Monthly Maintenance Override (₹)"
+            extra={
+              config?.monthlyMaintenanceAmount
+                ? `Leave blank to use society default (₹${config.monthlyMaintenanceAmount}). Used when generating dues — e.g. shop/commercial units.`
+                : 'Leave blank to use society default from Settings. Used when generating dues.'
+            }
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (value == null || value === '') return Promise.resolve();
+                  if (Number(value) < 1) return Promise.reject(new Error('Must be at least ₹1'));
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={1}
+              step={100}
+              placeholder="Society default"
+            />
           </Form.Item>
 
           <Form.Item>

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchExpenses } from '../../api/expenses';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { EXPENSE_TYPES, EXPENSE_TYPE_COLORS } from '../../utils/constants';
+import { getExpenseDisplayLabel } from '../../utils/expenseCategories';
 import EmptyState from '../../components/common/EmptyState';
 import FileViewerModal from '../../components/common/FileViewerModal';
 
@@ -33,7 +34,9 @@ export default function SocietyExpenses() {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
-      render: (v) => <Tag color={EXPENSE_TYPE_COLORS[v] || 'default'}>{v}</Tag>,
+      render: (v, record) => (
+        <Tag color={EXPENSE_TYPE_COLORS[v] || 'default'}>{getExpenseDisplayLabel(record)}</Tag>
+      ),
     },
     {
       title: 'Amount',

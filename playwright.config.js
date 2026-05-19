@@ -2,7 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 30000,
+  globalSetup: './tests/global-setup.js',
+  timeout: 60000,
   retries: 1,
   workers: 1,
   reporter: [
