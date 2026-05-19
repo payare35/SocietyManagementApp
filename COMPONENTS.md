@@ -1,6 +1,6 @@
 # Deshpande Blocks — Components & Design Tokens
 
-## Reusable components
+## Reusable UI components
 
 ### `ErrorBoundary`
 - **Path:** `client/src/components/common/ErrorBoundary.jsx`
@@ -96,7 +96,7 @@ const [fileData, setFileData] = useState(null);
 
 ---
 
-### `MonthlyChart` (exported as default from `Charts.jsx`)
+### `MonthlyChart` (default export from `Charts.jsx`)
 - **Path:** `client/src/components/dashboard/Charts.jsx`
 - **Purpose:** Recharts bar chart — collections vs expenses by month.
 - **Props:**
@@ -133,31 +133,76 @@ const [fileData, setFileData] = useState(null);
 
 ### `AppHeader` (default export from `Header.jsx`)
 - **Path:** `client/src/components/Layout/Header.jsx`
-- **Purpose:** Top bar — collapse toggle, society name from config, user dropdown + logout.
+- **Purpose:** Top bar — collapse toggle, society name from config query, user dropdown + logout.
 - **Props:**
   | Prop | Type | Description |
   |------|------|-------------|
   | `collapsed` | boolean | Sidebar state |
   | `onToggle` | function | Toggle sidebar |
-- **Usage:** Used only inside `AppLayout`.
 
 ---
 
-## Route guard components (not visual widgets)
+## Route guard components
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `PrivateRoute` | `client/src/routes/PrivateRoute.jsx` | Requires Firebase user |
+| `PrivateRoute` | `client/src/routes/PrivateRoute.jsx` | Requires Firebase user; shows `Loader` while loading |
 | `AdminRoute` | `client/src/routes/AdminRoute.jsx` | Requires `profile.role === 'admin'` |
 | `AppRoutes` | `client/src/routes/AppRoutes.jsx` | Full route table |
 
 ---
 
-## Page components (feature screens, not shared library)
+## Page components (feature screens)
 
-Admin: `Dashboard`, `Members`, `AddMember`, `Expenses`, `AddExpense`, `Transactions`, `Dues`, `Settings`  
-User: `UserDashboard`, `MyTransactions`, `MyDues`, `PayMaintenance`, `SocietyExpenses`  
-Auth: `LoginPage`
+| Area | Path | Screens |
+|------|------|---------|
+| Admin | `client/src/pages/admin/` | `Dashboard`, `Members`, `AddMember`, `Expenses`, `AddExpense`, `Transactions`, `Dues`, `Settings` |
+| Member | `client/src/pages/user/` | `UserDashboard`, `MyTransactions`, `MyDues`, `PayMaintenance`, `SocietyExpenses` |
+| Auth | `client/src/pages/auth/` | `LoginPage` |
+
+---
+
+## Client API modules (`client/src/api/`)
+
+| File | Key exports | Backend |
+|------|-------------|---------|
+| `axios.js` | default `api` | Base URL, Bearer interceptor, 401 → `/login` |
+| `auth.js` | `getMe`, `lookupEmailByContact`, `loginVerify` | `/auth/*` |
+| `members.js` | `fetchMembers`, `fetchMemberById`, `createMember`, `updateMember`, `deleteMember` | `/members` |
+| `expenses.js` | `fetchExpenses`, `fetchExpenseById`, `createExpense`, `updateExpense`, `deleteExpense` | `/expenses` |
+| `transactions.js` | `fetchTransactions`, `fetchMyTransactions`, `createTransaction`, `createSelfTransaction`, `updateTransactionStatus` | `/transactions` |
+| `dues.js` | `fetchDues`, `fetchMyDues`, `generateDues` | `/dues` |
+| `dashboard.js` | `fetchDashboardStats` | `GET /dashboard/stats` (admin) |
+| `config.js` | `fetchConfig`, `updateConfig` | `/config` |
+| `upload.js` | `uploadFile(file, folder)` | `POST /upload` |
+| `files.js` | `fetchFileAsBlob(filePath)` | `GET /files/view` |
+
+**Pattern:** All fetch functions return `res.data.data` (the inner payload).
+
+---
+
+## Server services (`server/src/services/`)
+
+| Service | Path | Responsibility |
+|---------|------|----------------|
+| `authService` | `authService.js` | `getUserProfile`, `lookupAuthEmailByContact` |
+| `memberService` | `memberService.js` | Member CRUD, Firebase user creation, custom claims |
+| `expenseService` | `expenseService.js` | Expense CRUD, in-memory filter/paginate |
+| `transactionService` | `transactionService.js` | Admin/member transactions, status updates, due reconciliation |
+| `duesService` | `duesService.js` | Generate dues, list/filter, mark paid |
+| `configService` | `configService.js` | Read/update `societyConfig/config` |
+| `dashboardService` | `dashboardService.js` | Aggregate stats for admin dashboard |
+| `uploadService` | `uploadService.js` | Multer buffer → sharp compress → GCS upload |
+
+---
+
+## Server middleware
+
+| Middleware | Path | Behavior |
+|------------|------|----------|
+| `authMiddleware` | `middleware/authMiddleware.js` | Verifies Bearer JWT → `req.user = { uid, role, email }` |
+| `adminMiddleware` | `middleware/adminMiddleware.js` | Requires `req.user.role === 'admin'` |
+| `errorHandler` | `middleware/errorHandler.js` | Global `{ success: false, message }` on unhandled errors |
 
 ---
 
@@ -167,8 +212,7 @@ Auth: `LoginPage`
 |--------|------|-----------------|
 | **formatters** | `client/src/utils/formatters.js` | `formatCurrency`, `formatDate`, `formatDateTime`, `formatMonth` — INR & Indian date formats; handles Firestore timestamp shapes |
 | **constants** | `client/src/utils/constants.js` | `TRANSACTION_STATUS`, `TRANSACTION_TYPES`, `DUE_STATUS`, `STATUS_COLORS`, `EXPENSE_TYPES`, `EXPENSE_TYPE_COLORS` |
-| **upiLinks** | `client/src/utils/upiLinks.js` | `buildUpiLinks({ upiId, societyName, amount, month })` — UPI deep links (legacy; Pay page no longer uses buttons) |
-| **axios instance** | `client/src/api/axios.js` | Default export `api` — base URL, Bearer token, 401 redirect |
+| **upiLinks** | `client/src/utils/upiLinks.js` | `buildUpiLinks({ upiId, societyName, amount, month })` — legacy; Pay page does not use |
 | **firebaseConfig** | `client/src/firebaseConfig.js` | `auth` export for Firebase client |
 
 ---
@@ -177,25 +221,21 @@ Auth: `LoginPage`
 
 | Module | Path | Exports / purpose |
 |--------|------|-----------------|
-| **responseFormatter** | `server/src/utils/responseFormatter.js` | `sendSuccess`, `sendError` |
+| **responseFormatter** | `server/src/utils/responseFormatter.js` | `sendSuccess(res, data, message?, status?)`, `sendError(res, status, message, errors?)` |
 | **helpers** | `server/src/utils/helpers.js` | `buildSyntheticEmail`, `getCurrentMonth`, `getPaginatedSlice` |
 | **flatUtils** | `server/src/utils/flatUtils.js` | `countFlats(flatNumber)` — multi-flat dues multiplier |
 
 ---
 
-## API client modules (`client/src/api/`)
+## Auth hook
 
-| File | Functions |
-|------|-----------|
-| `auth.js` | `getMe`, `lookupEmailByContact` |
-| `members.js` | `fetchMembers`, `fetchMemberById`, `createMember`, `updateMember`, `deleteMember` |
-| `expenses.js` | CRUD + list |
-| `transactions.js` | List, create, confirm/reject |
-| `dues.js` | `fetchDues`, `generateDues`, member dues helpers |
-| `dashboard.js` | `fetchAdminStats`, `fetchUserStats` |
-| `config.js` | `fetchConfig`, `updateConfig` |
-| `upload.js` | `uploadFile(file, folder)` |
-| `files.js` | `fetchFileAsBlob(filePath)` |
+```javascript
+import { useAuth } from '../context/AuthContext';
+
+const { user, profile, loading, error, login, logout, refreshToken } = useAuth();
+// profile.role → 'admin' | 'member'
+// profile.flatNumber → may be "501, 502"
+```
 
 ---
 
@@ -231,7 +271,7 @@ Auth: `LoginPage`
 
 **Layout / Menu overrides:** `siderBg` `#1E293B`, `darkItemSelectedBg` `#4F46E5`, `headerBg` `#F8FAFC`, `rowHoverBg` `#EEF2FF`.
 
-### Global CSS classes (not variables)
+### Global CSS classes
 
 | Class | Purpose |
 |-------|---------|
@@ -242,27 +282,11 @@ Auth: `LoginPage`
 
 ### Status / type colors (JS constants)
 
-Use `STATUS_COLORS[status]` and `EXPENSE_TYPE_COLORS[type]` from `constants.js` for Ant Design `<Tag color={...} />` — maps `paid`, `unpaid`, `pending`, `confirmed`, etc. to Ant preset color names.
+Use `STATUS_COLORS[status]` and `EXPENSE_TYPE_COLORS[type]` from `constants.js` for Ant Design `<Tag color={...} />`.
 
-### Typography
+### Typography & spacing
 
-No custom text-style components. Use Ant Design `Typography` (`Title`, `Text`) with inline `style` or `type="secondary"`. Section labels in Settings use uppercase 12px indigo `#4F46E5`.
-
-### Spacing conventions
-
-- Page content margin: `20px 16px` (`.app-content`)
-- Section gaps: `marginBottom: 16` / `24` on headers and filters
-- Form: `layout="vertical"` on admin forms
-- Table + filters: `Space wrap` with `marginBottom: 16`
-
----
-
-## Auth hook
-
-```javascript
-import { useAuth } from '../context/AuthContext';
-
-const { user, profile, loading, error, login, logout, refreshToken } = useAuth();
-// profile.role → 'admin' | 'member'
-// profile.flatNumber → may be "501, 502"
-```
+- No custom text components — use Ant Design `Typography` (`Title`, `Text`).
+- Page content: `.app-content` — `20px 16px` margin.
+- Section gaps: `marginBottom: 16` / `24`.
+- Forms: `layout="vertical"` on admin forms.

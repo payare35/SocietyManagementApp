@@ -11,18 +11,37 @@ alwaysApply: true
 |-------|--------|-------------|
 | Frontend | React **18.2**, Vite **5.1**, React Router **6.22** | ESM only (`"type": "module"` in client) |
 | UI | Ant Design **5.14**, `@ant-design/icons` **5.3** | Theme tokens in `client/src/main.jsx`; global CSS in `client/src/index.css` |
+| Charts | Recharts **2.12** | Admin dashboard only (`Charts.jsx`) |
 | Server state | TanStack React Query **5.20** | Default `staleTime: 5min`, `retry: 1` in `main.jsx` |
 | Auth state | React Context + `useReducer` | `client/src/context/AuthContext.jsx` only |
 | HTTP | Axios **1.6** | `client/src/api/axios.js` — Bearer from `localStorage.token` |
 | Auth | Firebase client **10.8** + Firebase Admin **12.0** | Custom claims `role`: `admin` \| `member` |
 | Database | Firestore (via Admin SDK) | No ORM; services talk to collections directly |
 | Storage | Firebase Storage (GCS) | Private files; served via `/api/files/view` blob proxy |
-| Backend | Express **4.18**, ESM (`"type": "module"`) | Port **5001** locally (`server/src/index.js`) |
+| Backend | Express **4.18**, ESM (`"type": "module"`) | Port **5001** locally (`server/src/index.js`); Vite proxies `/api` → 5001 |
 | Validation | express-validator **7** | Route-level arrays; check `validationResult(req)` in controllers |
+| Upload | multer **1.4** + sharp **0.34** | sharp lazy-loaded; external on Netlify |
 | Deploy | Netlify static + serverless function | `netlify.toml`; API at `/api/*` → `netlify/functions/api.mjs` |
+| Tests | Playwright **1.58** | E2E in `tests/`; unit test `server/src/utils/flatUtils.test.js` |
 | Node | **20+** recommended | Serverless uses `esbuild` bundler; `sharp` is external |
 
-Env vars: `VITE_*` (client), `FIREBASE_SERVICE_ACCOUNT_JSON` / `serviceAccountKey.json` (server), `CLIENT_ORIGIN`, `FIREBASE_STORAGE_BUCKET`.
+Env vars: `VITE_*` (client), `FIREBASE_SERVICE_ACCOUNT_JSON` / `serviceAccountKey.json` (server), `CLIENT_ORIGIN`, `FIREBASE_STORAGE_BUCKET`, `PORT`.
+
+## Architecture pattern
+
+**Layered 3-tier monorepo** (not strict MVC):
+
+```
+Browser (React SPA)
+  → api/*.js (Axios)
+  → Express routes (*Routes.js)
+  → controllers (*Controller.js) — validation + HTTP envelope
+  → services (*Service.js) — Firestore / Auth / Storage
+```
+
+- **Frontend:** Component-based SPA; feature pages in `pages/`; no global store for server data.
+- **Backend:** Thin controllers, fat services. **Never** access Firestore from controllers or the React client.
+- **Production:** Same `server/src/app.js` wrapped by `serverless-http` in Netlify (no `listen()` in app).
 
 ## State management
 
@@ -54,6 +73,7 @@ Env vars: `VITE_*` (client), `FIREBASE_SERVICE_ACCOUNT_JSON` / `serviceAccountKe
 │   ├── middleware/    # auth, admin, errorHandler
 │   ├── routes/        # Express routers (*Routes.js)
 │   ├── services/      # Firestore + business logic (*Service.js)
+│   ├── scripts/       # createFirstAdmin.js bootstrap
 │   └── utils/         # helpers, responseFormatter, flatUtils
 ├── netlify/functions/ # api.mjs serverless wrapper
 └── tests/             # Playwright specs + fixtures.js
@@ -110,11 +130,11 @@ export const handler = async (req, res, next) => {
 };
 ```
 
-**Routes:** `router.use(authMiddleware)` then optional `adminMiddleware` for admin-only resources.
+**Routes:** `router.use(authMiddleware)` then optional `adminMiddleware` for admin-only resources. Member self-service routes (e.g. `POST /transactions/self`, `GET /dues/my`) use auth only.
 
 **File attachments:** Store GCS path in `fileUrl` / `fileName`; view with `<FileViewerModal filePath={...} fileName={...}>`. Upload via `<FileUpload folder="expenses" onUpload={setFileData} />`.
 
-**Multi-flat members:** `flatNumber` is comma-separated string (e.g. `501, 502`). Count with `countFlats()` from `server/src/utils/flatUtils.js`. Dues: `amount = monthlyMaintenanceAmount * flatCount`. **Never** `normalize` flat input on every keystroke — normalize on submit only.
+**Multi-flat members:** `flatNumber` is comma-separated string (e.g. `501, 502`). Count with `countFlats()` from `server/src/utils/flatUtils.js`. Dues: `amount = monthlyMaintenanceAmount * flatCount`. **Never** `normalize` flat input on every keystroke — normalize on submit only (server `customSanitizer` on routes).
 
 ## Anti-patterns (do NOT)
 
@@ -128,6 +148,7 @@ export const handler = async (req, res, next) => {
 - Do **not** use field name `maintenanceAmount` in config — Firestore uses `monthlyMaintenanceAmount`.
 - Do **not** commit `serviceAccountKey.json`, `.env`, or `test-results/`.
 - Do **not** add gradients or extra brand colors; design is **2-color** (indigo `#4F46E5` + slate `#1E293B` / shades in `index.css`).
+- Do **not** call Firestore from the React client — all data via Express API.
 - Do **not** create commits or deploy unless the user explicitly asks.
 
 ## Dual-role users
